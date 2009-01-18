@@ -40,25 +40,9 @@ sub _build__children {
     ];
 }
 
-sub _clone_args {
-    my ( $self, @args ) = @_;
-
-    my @clones;
-
-    foreach my $arg ( @args ) {
-        if ( ref $arg ) {
-            push @clones, $arg->cloneNode(1);
-        } else {
-            push @clones, $arg;
-        }
-    }
-
-    return @clones;
-}
-
 BEGIN {
     # FIXME iterate required methods?
-    foreach my $method (qw(content append prepend text html clear)) {
+    foreach my $method (qw(content append prepend text html remove clear replace bind)) {
         eval qq{
             sub $method {
                 my ( \$self, \@args ) = \@_;

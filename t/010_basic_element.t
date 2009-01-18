@@ -80,4 +80,36 @@ my $span = Snippet::Element::Document->new(
 
 $span->text("hello");
 
-is( $span->render, q{<span class="moo">hello</span>} );
+is( $span->render, q{<span class="moo">hello</span>}, "top level element" );
+
+$span->html("<em>foo</em>");
+
+is( $span->render, q{<span class="moo"><em>foo</em></span>}, "inner html" );
+
+$span->find("em")->text("blah");
+
+is( $span->render, q{<span class="moo"><em>blah</em></span>}, "find by element type" );
+
+$span->find("em")->replace("instead");
+
+is( $span->render, q{<span class="moo">instead</span>}, "replace" );
+
+$span->content( Snippet::Element::Document->new( body => q{<p id="elem">paragraph</p>} ) );
+
+is( $span->render, q{<span class="moo"><p id="elem">paragraph</p></span>}, "splice element" );
+
+$span->find("#elem")->text("by id");
+
+is( $span->render, q{<span class="moo"><p id="elem">by id</p></span>}, "find by id" );
+
+$span->find("#elem")->remove;
+
+is( $span->render, q{<span class="moo"/>}, "remove" );
+
+$span->html(q{<ul><li class="item"/></ul>});
+
+is( $span->render, q{<span class="moo"><ul><li class="item"/></ul></span>}, "html on root");
+
+$span->find(".item")->bind([ qw(foo bar gorch) ]);
+
+is( $span->render, q{<span class="moo"><ul><li class="item">foo</li><li class="item">bar</li><li class="item">gorch</li></ul></span>}, "bind");

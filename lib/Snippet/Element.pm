@@ -59,10 +59,13 @@ coerce 'Snippet::Element'
 requires qw(
     render
 
+    remove
     clear
+    replace
     append
     prepend
     content
+    bind
     text
     html
     attr
@@ -81,6 +84,12 @@ requires qw(
 sub cloneNode { shift->clone }
 
 sub clone_body { shift->body->cloneNode(1) }
+
+sub _clone_args {
+    my ( $self, @args ) = @_;
+
+    map { ref $_ ? $_->cloneNode(1) : $_ } @args;
+}
 
 my %xpath_cache;
 my %xpath_hits;

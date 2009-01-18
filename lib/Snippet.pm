@@ -1,6 +1,8 @@
 package Snippet;
 use Moose::Role;
 
+use Moose::Util::TypeConstraints->new;
+
 use Snippet::Element;
 
 use namespace::clean -except => 'meta';

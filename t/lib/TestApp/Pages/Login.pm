@@ -3,6 +3,8 @@ use Moose;
 
 extends 'Snippet::Page';
 
+use namespace::clean -except => 'meta';
+
 has 'message' => (
     traits   => [ 'Snippet::Meta::Attribute::Traits::Snippet' ],
     selector => '.message',
@@ -13,7 +15,9 @@ has 'message' => (
 );
 
 has [qw(logged_in_message please_login_message login_error)] => (
-    isa => "Snippet::Element",
+    isa => "Str|Snippet::Element",
+    is  => "ro",
+    required => 1,
 
 sub get_meesage {
     my ( $self, %args ) = @_;

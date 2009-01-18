@@ -3,6 +3,8 @@
 package Snippet::Element::Document;
 use Moose;
 
+use Carp qw(croak);
+
 use namespace::clean -except => 'meta';
 
 has body => (
@@ -25,6 +27,8 @@ has child_element => (
         append
         prepend
         content
+        replace
+        bind
         html
         text
         attr
@@ -51,6 +55,10 @@ sub root {
 sub clone {
     my $self = shift;
     ( ref $self )->new( body => $self->clone_body );
+}
+
+sub remove {
+    croak "Can't remove root element";
 }
 
 __PACKAGE__->meta->make_immutable;

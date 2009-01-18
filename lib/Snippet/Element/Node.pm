@@ -60,6 +60,34 @@ sub _prepare_new_child {
     }
 }
 
+sub bind {
+    my ( $self, $binding ) = @_;
+
+    if ( ref $binding eq 'ARRAY' ) {
+        my @bound = map { $self->clone->bind($_) } @$binding;
+        return $self->replace(@bound);
+    } else {
+        $self->content($self->_clone_args($binding));
+    }
+}
+
+
+sub replace {
+    my ( $self, @args ) = @_;
+
+    croak "no content provided" unless @args;
+
+    my @children = $self->_prepare_new_children(@args);
+
+    my $body = $self->body;
+    my $parent = $body->parentNode;
+
+    $parent->insertBefore($_, $body) for @children;
+    $parent->removeChild($body);
+
+    $self;
+}
+
 sub content {
     my ( $self, @args ) = @_;
 
@@ -71,9 +99,11 @@ sub content {
 }
 
 sub html {
-    my ( $self, $child ) = @_;
+    my ( $self, $html ) = @_;
 
-    my @nodes = $self->_parse_html_nodes($child);
+    croak "no html provided" unless defined $html;
+
+    my @nodes = $self->_parse_html_nodes($html);
 
     return $self->_replace_inner_node(@nodes);
 }
@@ -121,6 +151,16 @@ sub attr {
     $body->setAttribute($name, $args[0]) if @args;
 
     $body->getAttribute($name);
+}
+
+sub remove {
+    my ( $self, @args ) = @_;
+
+    my $body = $self->body;
+
+    $body->parentNode->removeChild($body);
+
+    $self;
 }
 
 sub clear {
