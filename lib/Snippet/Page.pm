@@ -1,61 +1,52 @@
 package Snippet::Page;
 use Moose;
 
+use Snippet::Meta::Attribute::Traits::Snippet;
+
+use Carp qw(croak);
+
+use namespace::clean -except => 'meta';
+
+extends qw(Snippet);
+
 our $VERSION   = '0.01';
 our $AUTHORITY = 'cpan:STEVAN';
 
-has 'html' => (
-    is       => 'ro',
-    isa      => 'Snippet::Element',   
-    coerce   => 1,
-    required => 1,
-    handles  => {
-        'find' => 'find'
-    }
-);
+sub _snippet_attributes {
+	my $self = shift;
 
-has '_snippets_map' => (
-    is      => 'ro',
-    isa     => 'HashRef[Snippet]',   
-    lazy    => 1,
-    default => sub {
-        my $self = shift;
-        return +{
-            map  { $_->selector => $_->get_value($self)                  }
-            grep { $_->does('Snippet::Meta::Attribute::Traits::Snippet') } 
-            $self->meta->get_all_attributes
-        }
-    }
-);
-
-sub RUN {} # override me ...
+	grep { $_->does('Snippet::Meta::Attribute::Traits::Snippet') } 
+		$self->meta->get_all_attributes
+}
 
 sub process {
-    my ($self, $request) = @_;
-    foreach my $id (keys %{ $self->_snippets_map }) {
-        $self->_snippets_map->{$id}->process($request)
-    }
-    $self->RUN($request);    
-    $self;
+    my ($self, %args) = @_;
+
+	my $body = $self->new_body;
+
+	my @attrs = $self->_snippet_attributes;
+
+	if ( my $hide = $args{hide} ) {
+		@attrs = grep { not $hide->{$_->name} } @attrs;
+	}
+
+	foreach my $attr ( @attrs ) {
+		if ( my $content = eval { $attr->process($self, %args) } ) {
+			my $selector = $attr->selector;
+
+			my $container = $body->find($selector)
+				or croak "No container found for $selector";
+
+			$container->content($content);
+		} elsif ( $@ ) {
+			die "Error processing sub snippet " . $attr->name . ": $@";
+		}
+	}
+
+	return $body;
 }
 
-sub render {
-    my ($self) = @_;
-    # for each snippet ...
-    foreach my $id (keys %{ $self->_snippets_map }) {
-        # with the output of 
-        # the snippet render()
-        # method
-        if (my $out = $self->_snippets_map->{$id}->render) {
-            # find the ID in our document
-            # ... and then replace the html
-            $self->find($id)->html($out);
-        }
-    }
-    $self->html->render;
-}
-
-no Moose; 1;
+1;
 
 __END__
 

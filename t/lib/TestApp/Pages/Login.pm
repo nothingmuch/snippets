@@ -7,25 +7,31 @@ has 'message' => (
     traits   => [ 'Snippet::Meta::Attribute::Traits::Snippet' ],
     selector => '.message',
     is       => 'ro',
-    isa      => 'Snippet',
-    required => 1
+    isa      => 'Snippet::Notification',
+    required => 1,
+	content  => sub {
+		my ( $self, %args ) = @_;
+
+		if ( $args{is_authenticated} ) {
+			return "Thank You For Logging In";
+		} elsif ( $args{login_error} ) {
+			return Snippet::Element->new( body => q{<span class="error">Incorrect login</span>} );
+		} else {
+			return "Please Login";
+		}
+	}
 );
 
 has 'login_form' => (
-    traits   => [ 'Snippet::Meta::Attribute::Traits::Snippet' ],
-    selector => '#login_form',
-    is       => 'ro',
-    isa      => 'TestApp::Snippet::LoginForm',
-    required => 1,
-    handles  => [qw[ is_authenticated ]]
+    traits    => [ 'Snippet::Meta::Attribute::Traits::Snippet' ],
+    selector  => '#login_form',
+    is        => 'ro',
+    isa       => 'TestApp::Snippet::LoginForm',
+    required  => 1,
+	condition => sub {
+		my ( $self, %args ) = @_;
+		not $args{is_authenticated};
+	},
 );
-
-sub RUN {
-    my ($self, $request) = @_;
-    if ($self->is_authenticated) {
-        $self->login_form->visible(0);
-        $self->message->html('<em>Thank You For Logging In</em>');
-    }
-}
 
 1;

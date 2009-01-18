@@ -1,6 +1,12 @@
 package Snippet::Meta::Attribute::Traits::Snippet;
 use Moose::Role;
 
+use Carp qw(croak);
+
+use namespace::clean -except => 'meta';
+
+sub Moose::Meta::Attribute::Custom::Trait::Snippet::Meta::Attribute::Traits::Snippet::register_implementation { __PACKAGE__ }
+
 our $VERSION   = '0.01';
 our $AUTHORITY = 'cpan:STEVAN';
 
@@ -10,7 +16,109 @@ has 'selector' => (
     required => 1,
 );
 
-no Moose::Role; 1;
+# controls default visibility
+has hidden => (
+	isa => "Bool",
+	is  => "ro",
+);
+
+has cond_arg => (
+	isa => "Str",
+	is  => "ro",
+);
+
+has condition => (
+	isa => "CodeRef|Str",
+	is  => "ro",
+);
+
+has content => (
+	isa => "CodeRef|Str",
+	is  => "ro",
+);
+
+has args => (
+	isa => "CodeRef|Str",
+	is  => "ro",
+);
+
+sub process {
+	my ( $self, $object, @args ) = @_;
+
+	if ( my $snippet = $self->get_snippet($object, @args) ) {
+		my @process_args = $self->snippet_args($object, @args);
+
+		if ( my $content = $snippet->process(@process_args) ) {
+			return $content;
+		} else {
+			croak "Sub-snippet " . $self->name . " did not return a result";
+		}
+	} else {
+		return;
+	}
+}
+
+sub get_snippet {
+	my ( $self, $object, %args ) = @_;
+
+	my $snippet = $self->get_value($object) or return;
+
+    my $hidden         = $self->hidden;
+    my $cond_arg       = $self->cond_arg;
+    my $cond_arg_value = defined($cond_arg) && $args{$cond_arg};
+    my $cond_cb        = $self->condition;
+
+	if ( $hidden ) {
+		# if we're hidden by default, only display if one of the conditions is true
+
+		if ( $cond_arg_value or $cond_cb && $object->$cond_cb(%args) ) {
+			return $snippet;
+		} else {
+			return;
+		}
+	} else {
+		# normal mode, hide if one of the conditions fails
+
+		if ( defined($cond_arg) && !$cond_arg_value
+				or
+			$cond_cb && !$object->$cond_cb(%args)
+		) {
+			return;
+		} else {
+			return $snippet;
+		}
+	}
+}
+
+sub snippet_args {
+	my ( $self, $object, %args ) = @_;
+
+	# top level args
+	my @args = %args;
+
+	# extract explicit nested args
+	if ( my $sub_args = $args{args} ) {
+		if ( my $my_args = $sub_args->{$self->name} ) {
+			push @args, %$my_args;
+		}
+	}
+
+	# call arg callback
+	if ( my $args_cb = $self->args ) {
+		push @args, $object->$args_cb(%args);
+	}
+
+	# call content callback
+	if ( my $content_cb = $self->content ) {
+		push @args, content => $object->$content_cb(%args);
+	}
+
+	push @args, parent => $object;
+
+	return @args;
+}
+
+1;
 
 __END__
 

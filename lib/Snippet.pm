@@ -3,40 +3,31 @@ use Moose;
 
 use Snippet::Element;
 
+use namespace::clean -except => 'meta';
+
 our $VERSION   = '0.01';
 our $AUTHORITY = 'cpan:STEVAN';
 
-has 'html' => (
+has template => (
     is       => 'rw',
     isa      => 'Snippet::Element',   
     coerce   => 1,
     required => 1,
-    handles  => {
-        'find' => 'find'
-    }
 );
 
-has 'visible' => (
-    is      => 'rw',
-    isa     => 'Bool',   
-    default => sub { 1 },
-);
+sub new_body {
+	my $self = shift;
 
-sub RUN {} # override me ...
+	$self->template->clone;
+}
 
 sub process {
-    my ($self, $request) = @_;
-    $self->RUN($request);
-    $self;
+	my ( $self, @args ) = @_;
+
+	return $self->new_body;
 }
 
-sub render {
-    my $self = shift;
-    return unless $self->visible;
-    $self->html->render;
-}
-
-no Moose; 1;
+1;
 
 __END__
 

@@ -24,6 +24,8 @@ use MooseX::Types::Path::Class qw(File);
 
 use namespace::clean -except => 'meta';
 
+use overload '""' => sub { overload::StrVal($_[0]) . "[" . $_[0]->_body . "]" };
+
 our $VERSION   = '0.01';
 our $AUTHORITY = 'cpan:STEVAN';
 
@@ -42,7 +44,7 @@ class_type 'XML::LibXML::NodeList';
 class_type 'XML::LibXML::Document';
 
 coerce 'XML::LibXML::Document'
-    => from Str => via { $PARSER->parse_string($_) },
+    => from Str => via { $PARSER->parse_string($_)->documentElement },
     => from File,  via { $PARSER->parse_file($_->stringify) };
 
 # I am coerce-able
@@ -104,7 +106,7 @@ sub content {
     if ( ref $replacement ) {
         if ( blessed $replacement ) {
             if ( $replacement->isa("Snippet::Element") ) {
-                return $self->_replace_inner_node($replacement->_child_nodes);
+                return $self->_replace_inner_node($replacement->_nodes);
             } else {
                 return $self->_replace_inner_node($replacement);
             }
@@ -112,7 +114,7 @@ sub content {
             croak "Content must be a string or an object";
         }
     } else {
-        return $self->html($replacement);
+        return $self->text($replacement);
     }
 }
 
@@ -229,8 +231,8 @@ sub _node {
 
     #warn "body: $body";
 
-    if ($body->isa('XML::LibXML::Document')) {
-        return $body->documentElement;
+    if ($body->isa('XML::LibXML::Document') and my $doc = $body->documentElement ) {
+        return $doc;
     } else {
         return $body;
     }
@@ -254,7 +256,11 @@ sub _child_nodes {
     my $body = $self->_body;
 
     if ( $body->isa('XML::LibXML::Document') ) {
-        return $body->documentElement->getChildnodes;
+		if ( my $documentElement = $body->documentElement ) {
+			return $documentElement->getChildNodes;
+		} else {
+			die $body->toString;
+		}
     } else {
         return $self->_nodes;
     }
