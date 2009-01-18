@@ -73,7 +73,9 @@ sub get_snippet {
 	}
 
 	if ( defined(my $unless = $self->unless) ) {
-		$cond_arg = $args{$unless} ? 0 : 1;
+		if ( exists $args{$unless} ) {
+			$cond_arg = $args{$unless} ? 0 : 1;
+		}
 	}
 
 	if ( $hidden ) {
