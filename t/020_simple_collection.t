@@ -12,13 +12,12 @@ BEGIN {
 }
 
 
-my $e = Snippet::Element::Document->new(
-    body => q{
-        <ul>
-            <li></li>
-        </ul>
-    }
-);
+my $e = Snippet::Element->new_from_string(q{
+    <ul>
+        <li></li>
+    </ul>
+});
+
 does_ok($e, 'Snippet::Element');
 
 my $row_template = $e->find('li');

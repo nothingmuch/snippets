@@ -49,6 +49,12 @@ sub process {
         my @process_args = $self->snippet_args($object, @args);
 
         if ( my $content = $snippet->process(@process_args) ) {
+
+            # after processing, bind data if we have a bind hook
+            if ( my $content_cb = $self->bind ) {
+                $content->bind( $object->$content_cb(@args) );
+            }
+
             return $content;
         } else {
             croak "Sub-snippet " . $self->name . " did not return a result";
@@ -117,11 +123,6 @@ sub snippet_args {
     # call arg callback
     if ( my $args_cb = $self->args ) {
         push @args, $object->$args_cb(%args);
-    }
-
-    # call content callback
-    if ( my $content_cb = $self->content ) {
-        push @args, content => $object->$content_cb(%args);
     }
 
     push @args, parent => $object;

@@ -12,8 +12,8 @@ BEGIN {
 }
 
 
-my $e = Snippet::Element::Document->new(
-    body => q{<p>Hello <span class="place">???</span></p>}
+my $e = Snippet::Element->new_from_string(
+    q{<p>Hello <span class="place">???</span></p>}
 );
 
 does_ok($e, 'Snippet::Element');
@@ -74,8 +74,8 @@ is($c->render, q{<p>Hello <span class="thing">lalala</span></p>}, '... got the r
 is($sub_e->render, q{<span class="thing">Moose</span>}, '... got the right HTML');
 is($e->render, q{<p>Hello <span class="thing">Moose</span></p>}, '... got the right HTML');
 
-my $span = Snippet::Element::Document->new(
-    body => q{<span class="moo" />}
+my $span = Snippet::Element->new_from_string(
+    q{<span class="moo" />}
 );
 
 $span->text("hello");
@@ -94,7 +94,7 @@ $span->find("em")->replace("instead");
 
 is( $span->render, q{<span class="moo">instead</span>}, "replace" );
 
-$span->content( Snippet::Element::Document->new( body => q{<p id="elem">paragraph</p>} ) );
+$span->content( Snippet::Element->new_from_string(q{<p id="elem">paragraph</p>}) );
 
 is( $span->render, q{<span class="moo"><p id="elem">paragraph</p></span>}, "splice element" );
 

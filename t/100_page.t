@@ -21,12 +21,20 @@ my $html_dir = Path::Class::Dir->new($FindBin::Bin, qw[ lib html ]);
 
 my $login = TestApp::Pages::Login->new(
     template   => $html_dir->file(qw[ testapp pages login.html ]),
+
+    # snippet attrs
     message    => Snippet::Notification->new(
         template => '<span class="notification"></span>',
     ),
     login_form => TestApp::Snippet::LoginForm->new(
         template => $html_dir->file(qw[ testapp snippet loginform.html ])
     ),
+
+    # some static resources
+    # these could probably have default values
+    please_login_message => "Please Login",
+    logged_in_message => "Thank You For Logging In",
+    login_error_message  => Snippet::Element->new_from_string(q{<span class="error">Incorrect login</span>}),
 );
 
 # this would be a method of a login page object

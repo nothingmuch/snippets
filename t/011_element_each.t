@@ -12,15 +12,13 @@ BEGIN {
 }
 
 
-my $e = Snippet::Element::Document->new(
-    body => q{
-        <div>
-            <div>one</div>
-            <div>two</div>
-            <div>three</div>
-        </div>
-    }
-);
+my $e = Snippet::Element::Document->new_from_string(q{
+    <div>
+        <div>one</div>
+        <div>two</div>
+        <div>three</div>
+    </div>
+});
 does_ok($e, 'Snippet::Element');
 
 is($e->length, 1, '... is a single element');

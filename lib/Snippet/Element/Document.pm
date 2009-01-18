@@ -10,7 +10,6 @@ use namespace::clean -except => 'meta';
 has body => (
     is       => 'ro',
     isa      => 'XML::LibXML::Document',
-    coerce   => 1,
     required => 1,
 );
 

@@ -1,7 +1,7 @@
 package Snippet;
 use Moose::Role;
 
-use Moose::Util::TypeConstraints->new;
+use Moose::Util::TypeConstraints;
 
 use Snippet::Element;
 

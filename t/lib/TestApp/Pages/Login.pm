@@ -14,10 +14,11 @@ has 'message' => (
     bind     => "get_meesage",
 );
 
-has [qw(logged_in_message please_login_message login_error)] => (
+has [qw(logged_in_message please_login_message login_error_message)] => (
     isa => "Str|Snippet::Element",
     is  => "ro",
     required => 1,
+);
 
 sub get_meesage {
     my ( $self, %args ) = @_;
@@ -25,9 +26,9 @@ sub get_meesage {
     if ( $args{is_authenticated} ) {
         return $self->logged_in_message;
     } elsif ( $args{login_error} ) {
-        $self->login_error_message;
+        return $self->login_error_message;
     } else {
-        $self->please_login_message;
+        return $self->please_login_message;
     }
 }
 

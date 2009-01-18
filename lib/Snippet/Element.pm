@@ -43,18 +43,51 @@ my $PARSER = XML::LibXML->new;
 $PARSER->no_network(1);
 $PARSER->keep_blanks(0); # << on the fly whitespace "compression"
 
-class_type 'XML::LibXML::Node';
-class_type 'XML::LibXML::NodeList';
-class_type 'XML::LibXML::Document';
-
-coerce 'XML::LibXML::Document'
-    => from Str => via { $PARSER->parse_string($_) },
-    => from File,  via { $PARSER->parse_file($_->stringify) };
-
 # I am coerce-able
-coerce 'Snippet::Element'
-    => from Str => via { Snippet::Element::Document->new(body => $_) },
-    => from File,  via { Snippet::Element::Document->new(body => $_) };
+coerce( 'Snippet::Element',
+    from Str    => via { __PACKAGE__->new_from_string($_) },
+    from File,     via { __PACKAGE__->new_from_file($_) },
+    from Object => via { __PACKAGE__->new_from_dom($_) },
+);
+
+sub new_from_string {
+    my ( $self, $string, @args ) = @_;
+    Snippet::Element::Document->new( body => $PARSER->parse_string($string), @args );
+}
+
+sub new_from_file {
+    my ( $self, $file, @args ) = @_;
+    Snippet::Element::Document->new( body => $PARSER->parse_file($file->stringify), @args );
+}
+
+sub new_from_dom {
+    my ( $self, $node, @args ) = @_;
+
+    if ( $node->isa("XML::LibXML::Node") ) {
+        return __PACKAGE__->new_from_node($node, @args);
+    } elsif ( $node->isa("XML::LibXML::Document") ) {
+        return __PACKAGE__->new_from_document($node, @args);
+    } elsif ( $node->isa("XML::LibXML::NodeList") ) {
+        return __PACKAGE__->new_from_nodelist($node, @args);
+    } else {
+        croak "Unknown node type: $node";
+    }
+}
+
+sub new_from_node {
+    my ( $self, $node, @args ) = @_;
+    Snippet::Element::Node->new( body => $node, @args );
+}
+
+sub new_from_document {
+    my ( $self, $node, @args ) = @_;
+    Snippet::Element::Document->new( body => $node, @args );
+}
+
+sub new_from_nodelist {
+    my ( $self, $node, @args ) = @_;
+    Snippet::Element::NodeList->new( body => $node, @args );
+}
 
 requires qw(
     render
