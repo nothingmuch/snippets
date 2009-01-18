@@ -22,7 +22,7 @@ has hidden => (
 	is  => "ro",
 );
 
-has cond_arg => (
+has [qw(if unless)] => (
 	isa => "Str",
 	is  => "ro",
 );
@@ -64,22 +64,31 @@ sub get_snippet {
 	my $snippet = $self->get_value($object) or return;
 
     my $hidden         = $self->hidden;
-    my $cond_arg       = $self->cond_arg;
-    my $cond_arg_value = defined($cond_arg) && $args{$cond_arg};
     my $cond_cb        = $self->condition;
+
+	my $cond_arg;
+
+	if ( defined(my $if = $self->if ) ) {
+		$cond_arg = $args{$if} ? 1 : 0;
+	}
+
+	if ( defined(my $unless = $self->unless) ) {
+		$cond_arg = $args{$unless} ? 0 : 1;
+	}
 
 	if ( $hidden ) {
 		# if we're hidden by default, only display if one of the conditions is true
-
-		if ( $cond_arg_value or $cond_cb && $object->$cond_cb(%args) ) {
+		if ( defined($cond_arg) && $cond_arg
+				or
+			$cond_cb && $object->$cond_cb(%args)
+		) {
 			return $snippet;
 		} else {
 			return;
 		}
 	} else {
 		# normal mode, hide if one of the conditions fails
-
-		if ( defined($cond_arg) && !$cond_arg_value
+		if ( defined($cond_arg) && !$cond_arg
 				or
 			$cond_cb && !$object->$cond_cb(%args)
 		) {

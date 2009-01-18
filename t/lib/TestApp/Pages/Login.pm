@@ -28,10 +28,7 @@ has 'login_form' => (
     is        => 'ro',
     isa       => 'TestApp::Snippet::LoginForm',
     required  => 1,
-	condition => sub {
-		my ( $self, %args ) = @_;
-		not $args{is_authenticated};
-	},
+	unless    => "is_authenticated",
 );
 
 1;
