@@ -106,10 +106,10 @@ $span->find("#elem")->remove;
 
 is( $span->render, q{<span class="moo"/>}, "remove" );
 
-$span->html(q{<ul><li class="item"/></ul>});
+$span->html(q{<ul><li id="item" class="item"/></ul>});
 
-is( $span->render, q{<span class="moo"><ul><li class="item"/></ul></span>}, "html on root");
+is( $span->render, q{<span class="moo"><ul><li id="item" class="item"/></ul></span>}, "html on root");
 
-$span->find(".item")->bind([ qw(foo bar gorch) ]);
+$span->find("#item")->bind([ qw(foo bar gorch) ]);
 
 is( $span->render, q{<span class="moo"><ul><li class="item">foo</li><li class="item">bar</li><li class="item">gorch</li></ul></span>}, "bind");

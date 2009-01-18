@@ -65,6 +65,7 @@ sub bind {
 
     if ( ref $binding eq 'ARRAY' ) {
         my @bound = map { $self->clone->bind($_) } @$binding;
+        $_->attr(id => undef) for @bound;
         return $self->replace(@bound);
     } else {
         $self->content($self->_clone_args($binding));
@@ -148,7 +149,13 @@ sub attr {
 
     my $body = $self->body;
 
-    $body->setAttribute($name, $args[0]) if @args;
+    if ( @args ) {
+        if ( defined( my $value = $args[0] ) ) {
+            $body->setAttribute($name, $value);
+        } else {
+            $body->removeAttribute($name);
+        }
+    }
 
     $body->getAttribute($name);
 }
