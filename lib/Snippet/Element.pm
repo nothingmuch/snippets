@@ -22,12 +22,16 @@ use XML::LibXML;
 use HTML::Selector::XPath;
 use MooseX::Types::Path::Class qw(File);
 
+# clean these subs
+sub _compile_xpath;
+sub _purge_cache;
+
+use constant XPATH_CACHE_HIGH => 2000;
+use constant XPATH_CACHE_LOW  => 1500;
+
 use namespace::clean -except => 'meta';
 
 use overload '""' => sub { overload::StrVal($_[0]) . "[" . $_[0]->body . "]" };
-
-our $VERSION   = '0.01';
-our $AUTHORITY = 'cpan:STEVAN';
 
 # NOTE:
 # this should likely be injected
@@ -78,14 +82,38 @@ sub cloneNode { shift->clone }
 
 sub clone_body { shift->body->cloneNode(1) }
 
+my %xpath_cache;
+my %xpath_hits;
+
+sub _compile_xpath {
+    my $xpath = shift;
+
+    if ( scalar keys %xpath_hits > XPATH_CACHE_HIGH ) {
+        _purge_cache();
+    }
+
+    $xpath_hits{$xpath}++;
+
+    $xpath_cache{$xpath} ||= do {
+        unless ( $xpath =~ m{(?: ^/ | ^id\( | [:\[@] )}x ) {
+            $xpath = HTML::Selector::XPath::selector_to_xpath($xpath);
+        }
+
+        XML::LibXML::XPathExpression->new($xpath);
+    };
+}
+
+sub _purge_cache {
+    my @keys = sort { $xpath_hits{$a} <=> $xpath_hits{$b} } keys %xpath_hits;
+    my @purge = @keys[0 .. XPATH_CACHE_HIGH - XPATH_CACHE_LOW];
+    delete @xpath_cache{@purge};
+    delete @xpath_hits{@purge};
+}
+
 sub find {
     my ($self, $xpath) = @_;
 
-    unless ( $xpath =~ m{(?: ^/ | ^id\( | [:\[@] )}x ) {
-        $xpath = HTML::Selector::XPath::selector_to_xpath($xpath);
-    }
-
-    my $nodes = $self->body->findnodes($xpath);
+    my $nodes = $self->body->findnodes(_compile_xpath($xpath));
 
     if ( $nodes->size == 0 ) {
         return;
