@@ -8,15 +8,15 @@ use namespace::clean -except => 'meta';
 with qw(Snippet);
 
 sub process {
-	my ( $self, %args ) = @_;
+    my ( $self, %args ) = @_;
 
-	my $body = $self->new_body;
+    my $body = $self->new_body;
 
-	if ( my $msg = $args{content} ) {
-		$body->content($msg);
-	}
+    if ( my $msg = $args{content} ) {
+        $body->content($msg);
+    }
 
-	return $body;
+    return $body;
 }
 
 __PACKAGE__->meta->make_immutable;

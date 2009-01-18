@@ -12,14 +12,14 @@ BEGIN {
 }
 
 
-my $e = Snippet::Element->new(
+my $e = Snippet::Element::Document->new(
     body => q{
         <ul>
             <li></li>
         </ul>
     }
 );
-isa_ok($e, 'Snippet::Element');
+does_ok($e, 'Snippet::Element');
 
 my $row_template = $e->find('li');
 

@@ -12,7 +12,7 @@ BEGIN {
 }
 
 
-my $e = Snippet::Element->new(
+my $e = Snippet::Element::Document->new(
     body => q{
         <ul>
             <li>one</li>
@@ -21,7 +21,7 @@ my $e = Snippet::Element->new(
         </ul>
     }
 );
-isa_ok($e, 'Snippet::Element');
+does_ok($e, 'Snippet::Element');
 
 is($e->length, 1, '... is a single element');
 

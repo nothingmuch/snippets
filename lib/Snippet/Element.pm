@@ -1,5 +1,5 @@
 package Snippet::Element;
-use Moose;
+use Moose::Role;
 use Moose::Util::TypeConstraints;
 
 # this is where is all happens
@@ -24,7 +24,7 @@ use MooseX::Types::Path::Class qw(File);
 
 use namespace::clean -except => 'meta';
 
-use overload '""' => sub { overload::StrVal($_[0]) . "[" . $_[0]->_body . "]" };
+use overload '""' => sub { overload::StrVal($_[0]) . "[" . $_[0]->body . "]" };
 
 our $VERSION   = '0.01';
 our $AUTHORITY = 'cpan:STEVAN';
@@ -44,35 +44,39 @@ class_type 'XML::LibXML::NodeList';
 class_type 'XML::LibXML::Document';
 
 coerce 'XML::LibXML::Document'
-    => from Str => via { $PARSER->parse_string($_)->documentElement },
+    => from Str => via { $PARSER->parse_string($_) },
     => from File,  via { $PARSER->parse_file($_->stringify) };
 
 # I am coerce-able
 coerce 'Snippet::Element'
-    => from Str => via { Snippet::Element->new(body => $_) },
-    => from File,  via { Snippet::Element->new(body => $_) };
+    => from Str => via { Snippet::Element::Document->new(body => $_) },
+    => from File,  via { Snippet::Element::Document->new(body => $_) };
 
-has 'parent' => (
-    is        => 'ro',
-    isa       => 'Snippet::Element',
-    predicate => 'has_parent'
+requires qw(
+    render
+
+    clear
+    append
+    prepend
+    content
+    text
+    html
+    attr
+
+    children
+    each
+
+    length
+
+    is_root
+    root
+
+    nodes
 );
 
-has '_body' => (
-    init_arg => 'body',
-    is       => 'rw',
-    isa      => 'XML::LibXML::Document | XML::LibXML::Node | XML::LibXML::NodeList',
-    coerce   => 1,
-    required => 1,
-);
+sub cloneNode { shift->clone }
 
-sub clone {
-    my $self = shift;
-
-    (ref $self)->new( body => $self->_body->cloneNode(1) );
-}
-
-sub is_root { !(shift)->has_parent }
+sub clone_body { shift->body->cloneNode(1) }
 
 sub find {
     my ($self, $xpath) = @_;
@@ -81,209 +85,44 @@ sub find {
         $xpath = HTML::Selector::XPath::selector_to_xpath($xpath);
     }
 
-    my $nodes = $self->_body->findnodes($xpath);
+    my $nodes = $self->body->findnodes($xpath);
 
-    return unless $nodes->size;
-
-    return $self->_child_element($nodes->size == 1 ? $nodes->get_node(0) : $nodes);
-}
-
-sub children {
-    my $self = shift;
-
-    map { $self->_child_element($_) } $self->_child_nodes;
-}
-
-sub length {
-    my $body = (shift)->_body;
-    return 1 unless $body->isa('XML::LibXML::NodeList');
-    return $body->size();
-}
-
-sub content {
-    my ( $self, $replacement ) = @_;
-
-    if ( ref $replacement ) {
-        if ( blessed $replacement ) {
-            if ( $replacement->isa("Snippet::Element") ) {
-                return $self->_replace_inner_node($replacement->_nodes);
-            } else {
-                return $self->_replace_inner_node($replacement);
-            }
-        } else {
-            croak "Content must be a string or an object";
-        }
+    if ( $nodes->size == 0 ) {
+        return;
+    } elsif ( $nodes->size == 1 ) {
+        return Snippet::Element::Node->new(
+            body   => $nodes->get_node(0),
+            parent => $self,
+        ) ;
     } else {
-        return $self->text($replacement);
+        return Snippet::Element::NodeList->new(
+            body   => $nodes,
+            parent => $self,
+        );
     }
 }
 
-sub _prepare_new_children {
-    my ( $self, @children ) = @_;
+# private 
 
-    map { $self->_prepare_new_child($_) } @children;
-}
-
-sub _prepare_new_child {
-    my ( $self, $child ) = @_;
-
-    if ( ref $child ) {
-        if ( blessed $child ) {
-            if ( $child->isa("Snippet::Element") ) {
-                return $child->_child_nodes;
-            } else {
-                return $child;
-            }
-        } else {
-            croak "Content must be a string or an object";
-        }
-    } else {
-        return $PARSER->parse_string("<doc>$child</doc>")->documentElement->getChildnodes;
-    }
-}
-
-sub each {
-    my ($self, $f) = @_;
-    $f->($_) foreach $self->children;
-    $self;
-}
-
-sub append {
-    my ( $self, @children ) = @_;
-    my $body = $self->_body->documentElement;
-    $body->addChild($_) for $self->_prepare_new_children(@children);
-    $self;
-}
-
-sub prepend {
-    my ( $self, @children ) = @_;
-    my $body = $self->_body->documentElement;
-    $body->prepend($_) for reverse $self->_prepare_new_children(@children);
-    $self;
-}
-
-sub clear {
-    my ( $self ) = @_;
-    my $body = $self->_body->documentElement;
-    $body->removeChild($_) foreach $self->_child_nodes;
-    $self;
-}
-
-sub html {
-    my ( $self, $child ) = @_;
+sub _parse_html_nodes {
+    my ( $self, $html ) = @_;
 
     # NOTE:
     # I am not sure I like this <doc/> wrapper
     # but it does give us some more flexibility
     # in the API. It just feels wrong.
     # - SL
-    my @nodes = $PARSER->parse_string("<doc>$child</doc>")->documentElement->getChildnodes;
 
-    return $self->_replace_inner_node(@nodes);
+    my @nodes = $PARSER->parse_string("<doc>$html</doc>")->documentElement->getChildnodes;
+
+    #$self->body->getOwner->adoptNode($_) for @nodes;
+
+    return @nodes;
 }
 
-sub text {
-    my $self = shift;
-    return $self->_replace_inner_node(
-        XML::LibXML::Document->new->createTextNode(shift)
-    );
-}
-
-sub attr {
-    my ( $self, $name, @args ) = @_;
-
-    my $body = $self->_body;
-    (!$body->isa('XML::LibXML::NodeList'))
-        || confess "Cannot call attr() on a node_list";
-
-    $body->setAttribute($name, $args[0]) if @args;
-
-    $body->getAttribute($name);
-}
-
-sub as_xml {
-    shift->_body->toString;
-}
-
-sub render {
-    my $self = shift;
-
-    join( "", map { $_->toString } $self->_nodes );
-}
-
-# private 
-
-sub _child_element {
-    my ( $self, @args ) = @_;
-
-    unshift @args, "body" if @args % 2;
-
-    (ref $self)->new(
-        parent => $self,
-        @args,
-    );
-}
-
-sub _node {
-    my $self = shift;
-
-    my $body = $self->_body;
-
-    #warn "body: $body";
-
-    if ($body->isa('XML::LibXML::Document') and my $doc = $body->documentElement ) {
-        return $doc;
-    } else {
-        return $body;
-    }
-}
-
-sub _nodes {
-    my $self = shift;
-
-    my $node = $self->_node;
-
-    if ($node->isa('XML::LibXML::NodeList')) {
-        return $node->get_nodelist;
-    } else {
-        return $node;
-    }
-}
-
-sub _child_nodes {
-    my $self = shift;
-
-    my $body = $self->_body;
-
-    if ( $body->isa('XML::LibXML::Document') ) {
-		if ( my $documentElement = $body->documentElement ) {
-			return $documentElement->getChildNodes;
-		} else {
-			die $body->toString;
-		}
-    } else {
-        return $self->_nodes;
-    }
-}
-
-sub _replace_inner_node {
-    my ($self, @new) = @_;
-
-    my $old = $self->_body;
-
-    if ($old->isa('XML::LibXML::NodeList')) {
-        foreach my $node ($old->get_nodelist) {
-            $node->removeChild($_) foreach $node->getChildnodes;
-            $node->addChild($_->cloneNode(1)) for @new;
-        }
-    }
-    else {
-        $old->removeChild($_) foreach $old->getChildnodes;
-        $old->addChild($_) for @new;
-    }
-
-    $self;
-}
+require Snippet::Element::Document;
+require Snippet::Element::Node;
+require Snippet::Element::NodeList;
 
 1;
 

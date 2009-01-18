@@ -3,8 +3,11 @@
 use strict;
 use warnings;
 
+use Scalar::Util qw(refaddr);
+
 use Test::More 'no_plan';
 use Test::Exception;
+use Test::Moose;
 
 BEGIN {
     use_ok('Snippet');
@@ -14,35 +17,44 @@ BEGIN {
     package My::Greeting::Snippet;
     use Moose;
     
-    extends 'Snippet';
+    with 'Snippet::TransformBody';
     
-    sub RUN {
-        my ($self, $request) = @_;
-        if (my $thing = $request->{greeting}) {
-            $self->find('.thing')->text($thing);
+    sub transform {
+        my ( $self, $body, %args ) = @_;
+
+        if ( my $thing = $args{greeting} ) {
+            my $container = $body->find(".thing");
+            $container->text($thing);
         }
     }
 }
 
 my $s = My::Greeting::Snippet->new(
-    html => q{<p>Hello <span class="thing">???</span></p>}
+    template => q{<p>Hello <span class="thing">???</span></p>}
 );
 isa_ok($s, 'My::Greeting::Snippet');
-isa_ok($s, 'Snippet');
+does_ok($s, 'Snippet');
 
-lives_ok {
-    $s->process({ greeting => 'World' });
-} '... processed snippet okay';
+{
+    my $e;
+    lives_ok {
+        $e = $s->process;
+    } '... processed snippet okay';
 
-is($s->render, '<p>Hello <span class="thing">World</span></p>', '... rendered correctly');
+    isnt( refaddr($e->body), refaddr($s->template->body), "template cloned" );
 
-lives_ok {
-    $s->visible(0);
-} '... changed visibility';
+    is($e->render, '<p>Hello <span class="thing">???</span></p>', '... rendered correctly');
+}
 
-ok(!$s->render, '... nothing to render, I am invisible');
+{
+    my $e;
+    lives_ok {
+        $e = $s->process( greeting => 'World' );
+    } '... processed snippet okay';
 
+    isnt( refaddr($e->body), refaddr($s->template->body), "template cloned" );
 
+    is($e->render, '<p>Hello <span class="thing">World</span></p>', '... rendered correctly');
 
-
-
+    is($s->template->render, '<p>Hello <span class="thing">???</span></p>', '... template not modified')
+}

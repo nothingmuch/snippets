@@ -10,15 +10,15 @@ our $AUTHORITY = 'cpan:STEVAN';
 
 has template => (
     is       => 'ro',
-    isa      => 'Snippet::Element',   
+    does     => 'Snippet::Element',   
     coerce   => 1,
     required => 1,
 );
 
 sub new_body {
-	my $self = shift;
+    my $self = shift;
 
-	$self->template->clone;
+    return $self->template->clone;
 }
 
 requires "process";

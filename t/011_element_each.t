@@ -12,27 +12,27 @@ BEGIN {
 }
 
 
-my $e = Snippet::Element->new(
+my $e = Snippet::Element::Document->new(
     body => q{
         <div>
-        <div>one</div>
-        <div>two</div>
-        <div>three</div>                        
+            <div>one</div>
+            <div>two</div>
+            <div>three</div>
         </div>
     }
 );
-isa_ok($e, 'Snippet::Element');
+does_ok($e, 'Snippet::Element');
 
 is($e->length, 1, '... is a single element');
 
 is($e->render, '<div><div>one</div><div>two</div><div>three</div></div>', '... got the right HTML');
 
 my @children;
-$e->each(sub { 
+$e->each(sub {
     my $el = shift;
-    isa_ok($el, 'Snippet::Element');
-    is($el->length, 1, '... is a single element');    
-    push @children => $el 
+    does_ok($el, 'Snippet::Element');
+    is($el->length, 1, '... is a single element');
+    push @children => $el;
 });
 
 is(scalar @children, 3, '... got three child elements');

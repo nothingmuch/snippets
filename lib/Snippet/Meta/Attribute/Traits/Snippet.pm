@@ -18,115 +18,115 @@ has 'selector' => (
 
 # controls default visibility
 has hidden => (
-	isa => "Bool",
-	is  => "ro",
+    isa => "Bool",
+    is  => "ro",
 );
 
 has [qw(if unless)] => (
-	isa => "Str",
-	is  => "ro",
+    isa => "Str",
+    is  => "ro",
 );
 
 has condition => (
-	isa => "CodeRef|Str",
-	is  => "ro",
+    isa => "CodeRef|Str",
+    is  => "ro",
 );
 
 has content => (
-	isa => "CodeRef|Str",
-	is  => "ro",
+    isa => "CodeRef|Str",
+    is  => "ro",
 );
 
 has args => (
-	isa => "CodeRef|Str",
-	is  => "ro",
+    isa => "CodeRef|Str",
+    is  => "ro",
 );
 
 sub process {
-	my ( $self, $object, @args ) = @_;
+    my ( $self, $object, @args ) = @_;
 
-	if ( my $snippet = $self->get_snippet($object, @args) ) {
-		my @process_args = $self->snippet_args($object, @args);
+    if ( my $snippet = $self->get_snippet($object, @args) ) {
+        my @process_args = $self->snippet_args($object, @args);
 
-		if ( my $content = $snippet->process(@process_args) ) {
-			return $content;
-		} else {
-			croak "Sub-snippet " . $self->name . " did not return a result";
-		}
-	} else {
-		return;
-	}
+        if ( my $content = $snippet->process(@process_args) ) {
+            return $content;
+        } else {
+            croak "Sub-snippet " . $self->name . " did not return a result";
+        }
+    } else {
+        return;
+    }
 }
 
 sub get_snippet {
-	my ( $self, $object, %args ) = @_;
+    my ( $self, $object, %args ) = @_;
 
-	my $snippet = $self->get_value($object) or return;
+    my $snippet = $self->get_value($object) or return;
 
     my $hidden         = $self->hidden;
     my $cond_cb        = $self->condition;
 
-	my $cond_arg;
+    my $cond_arg;
 
-	if ( defined(my $if = $self->if ) ) {
-		$cond_arg = $args{$if} ? 1 : 0;
-	}
+    if ( defined(my $if = $self->if ) ) {
+        $cond_arg = $args{$if} ? 1 : 0;
+    }
 
-	if ( defined(my $unless = $self->unless) ) {
-		if ( exists $args{$unless} ) {
-			$cond_arg = $args{$unless} ? 0 : 1;
-		}
-	}
+    if ( defined(my $unless = $self->unless) ) {
+        if ( exists $args{$unless} ) {
+            $cond_arg = $args{$unless} ? 0 : 1;
+        }
+    }
 
-	if ( $hidden ) {
-		# if we're hidden by default, only display if one of the conditions is true
-		if ( defined($cond_arg) && $cond_arg
-				or
-			$cond_cb && $object->$cond_cb(%args)
-		) {
-			return $snippet;
-		} else {
-			return;
-		}
-	} else {
-		# normal mode, hide if one of the conditions fails
-		if ( defined($cond_arg) && !$cond_arg
-				or
-			$cond_cb && !$object->$cond_cb(%args)
-		) {
-			return;
-		} else {
-			return $snippet;
-		}
-	}
+    if ( $hidden ) {
+        # if we're hidden by default, only display if one of the conditions is true
+        if ( defined($cond_arg) && $cond_arg
+                or
+            $cond_cb && $object->$cond_cb(%args)
+        ) {
+            return $snippet;
+        } else {
+            return;
+        }
+    } else {
+        # normal mode, hide if one of the conditions fails
+        if ( defined($cond_arg) && !$cond_arg
+                or
+            $cond_cb && !$object->$cond_cb(%args)
+        ) {
+            return;
+        } else {
+            return $snippet;
+        }
+    }
 }
 
 sub snippet_args {
-	my ( $self, $object, %args ) = @_;
+    my ( $self, $object, %args ) = @_;
 
-	# top level args
-	my @args = %args;
+    # top level args
+    my @args = %args;
 
-	# extract explicit nested args
-	if ( my $sub_args = $args{args} ) {
-		if ( my $my_args = $sub_args->{$self->name} ) {
-			push @args, %$my_args;
-		}
-	}
+    # extract explicit nested args
+    if ( my $sub_args = $args{args} ) {
+        if ( my $my_args = $sub_args->{$self->name} ) {
+            push @args, %$my_args;
+        }
+    }
 
-	# call arg callback
-	if ( my $args_cb = $self->args ) {
-		push @args, $object->$args_cb(%args);
-	}
+    # call arg callback
+    if ( my $args_cb = $self->args ) {
+        push @args, $object->$args_cb(%args);
+    }
 
-	# call content callback
-	if ( my $content_cb = $self->content ) {
-		push @args, content => $object->$content_cb(%args);
-	}
+    # call content callback
+    if ( my $content_cb = $self->content ) {
+        push @args, content => $object->$content_cb(%args);
+    }
 
-	push @args, parent => $object;
+    push @args, parent => $object;
 
-	return @args;
+    return @args;
 }
 
 1;

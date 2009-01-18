@@ -12,10 +12,11 @@ BEGIN {
 }
 
 
-my $e = Snippet::Element->new(
+my $e = Snippet::Element::Document->new(
     body => q{<p>Hello <span class="place">???</span></p>}
 );
-isa_ok($e, 'Snippet::Element');
+
+does_ok($e, 'Snippet::Element');
 
 ok(!$e->has_parent, '... no parent element');
 ok($e->is_root, '... is root element');
@@ -27,7 +28,7 @@ is($e->render, q{<p>Hello <span class="place">???</span></p>}, '... got the righ
 ok(! defined $e->find('.thing'), '... found nothing');
 
 my $sub_e = $e->find('.place');
-isa_ok($sub_e, 'Snippet::Element');
+does_ok($sub_e, 'Snippet::Element');
 
 is($sub_e->length, 1, '... is a single element');
 
@@ -58,10 +59,25 @@ is($e->render, q{<p>Hello <span class="thing"><i>World</i></span></p>}, '... got
 
 
 lives_ok {
-    $sub_e->text('World');
+    $sub_e->text('Moose');
 } '... replace_html successfully';
 
-is($sub_e->render, q{<span class="thing">World</span>}, '... got the right HTML');
-is($e->render, q{<p>Hello <span class="thing">World</span></p>}, '... got the right HTML');
+is($sub_e->render, q{<span class="thing">Moose</span>}, '... got the right HTML');
+is($e->render, q{<p>Hello <span class="thing">Moose</span></p>}, '... got the right HTML');
 
+my $c = $e->clone;
 
+$c->find(".thing")->text("lalala");
+
+is($c->render, q{<p>Hello <span class="thing">lalala</span></p>}, '... got the right HTML');
+
+is($sub_e->render, q{<span class="thing">Moose</span>}, '... got the right HTML');
+is($e->render, q{<p>Hello <span class="thing">Moose</span></p>}, '... got the right HTML');
+
+my $span = Snippet::Element::Document->new(
+    body => q{<span class="moo" />}
+);
+
+$span->text("hello");
+
+is( $span->render, q{<span class="moo">hello</span>} );
