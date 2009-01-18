@@ -1,6 +1,6 @@
 package TestApp::Snippet::LoginForm;
 use Moose;
 
-extends 'Snippet';
+with 'Snippet::Static';
 
 1;

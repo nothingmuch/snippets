@@ -5,7 +5,7 @@ use Moose;
 
 use namespace::clean -except => 'meta';
 
-extends qw(Snippet);
+with qw(Snippet);
 
 sub process {
 	my ( $self, %args ) = @_;

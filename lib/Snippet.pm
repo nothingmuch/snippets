@@ -1,5 +1,5 @@
 package Snippet;
-use Moose;
+use Moose::Role;
 
 use Snippet::Element;
 
@@ -9,7 +9,7 @@ our $VERSION   = '0.01';
 our $AUTHORITY = 'cpan:STEVAN';
 
 has template => (
-    is       => 'rw',
+    is       => 'ro',
     isa      => 'Snippet::Element',   
     coerce   => 1,
     required => 1,
@@ -21,11 +21,7 @@ sub new_body {
 	$self->template->clone;
 }
 
-sub process {
-	my ( $self, @args ) = @_;
-
-	return $self->new_body;
-}
+requires "process";
 
 1;
 
