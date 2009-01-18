@@ -9,18 +9,23 @@ has 'message' => (
     is       => 'ro',
     isa      => 'Snippet::Notification',
     required => 1,
-    content  => sub {
-        my ( $self, %args ) = @_;
-
-        if ( $args{is_authenticated} ) {
-            return "Thank You For Logging In";
-        } elsif ( $args{login_error} ) {
-            return Snippet::Element::Document->new( body => q{<span class="error">Incorrect login</span>} );
-        } else {
-            return "Please Login";
-        }
-    }
+    bind     => "get_meesage",
 );
+
+has [qw(logged_in_message please_login_message login_error)] => (
+    isa => "Snippet::Element",
+
+sub get_meesage {
+    my ( $self, %args ) = @_;
+    
+    if ( $args{is_authenticated} ) {
+        return $self->logged_in_message;
+    } elsif ( $args{login_error} ) {
+        $self->login_error_message;
+    } else {
+        $self->please_login_message;
+    }
+}
 
 has 'login_form' => (
     traits    => [ 'Snippet::Meta::Attribute::Traits::Snippet' ],

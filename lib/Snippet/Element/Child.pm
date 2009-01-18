@@ -8,15 +8,14 @@ use namespace::clean -except => 'meta';
 with qw(Snippet::Element);
 
 has parent => (
-    is       => 'ro',
-    isa      => 'Snippet::Element',
-    required => 1,
+    is        => 'ro',
+    isa       => 'Snippet::Element',
+    predicate => "has_parent",
 );
 
 sub root { shift->parent->root }
 
 sub is_root { ''}
-sub has_parent { 1 }
 
 sub each {
     my ($self, $f, @args) = @_;

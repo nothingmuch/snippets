@@ -32,7 +32,7 @@ has condition => (
     is  => "ro",
 );
 
-has content => (
+has bind => (
     isa => "CodeRef|Str",
     is  => "ro",
 );
