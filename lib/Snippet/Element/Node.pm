@@ -61,14 +61,19 @@ sub _prepare_new_child {
 }
 
 sub bind {
-    my ( $self, $binding ) = @_;
+    my ( $self, @values ) = @_;
+
+    my $binding = @values == 1 ? $values[0] : \@values;
 
     if ( ref $binding eq 'ARRAY' ) {
-        my @bound = map { $self->clone->bind($_) } @$binding;
-        $_->attr(id => undef) for @bound;
+        my @bound = map { $self->clone->clear_attr('id')->bind($_) } @$binding;
         return $self->replace(@bound);
+    } elsif ( ref $binding eq 'HASH' ) {
+        my %attrs = %$binding;
+        my $data = delete $attrs{content};
+        return $self->set_attr(%attrs)->bind($data);
     } else {
-        $self->content($self->_clone_args($binding));
+        return $self->content($self->_clone_args($binding));
     }
 }
 
@@ -144,20 +149,42 @@ sub prepend {
     $self;
 }
 
-sub attr {
-    my ( $self, $name, @args ) = @_;
+sub set_attr {
+    my ( $self, %pairs ) = @_;
 
-    my $body = $self->body;
+    my @clear;
 
-    if ( @args ) {
-        if ( defined( my $value = $args[0] ) ) {
-            $body->setAttribute($name, $value);
+    foreach my $key ( keys %pairs ) {
+        if ( defined( my $value = $pairs{$key} ) ) {
+            $self->body->setAttribute($key, $value);
         } else {
-            $body->removeAttribute($name);
+            push @clear, $key;
         }
     }
 
-    $body->getAttribute($name);
+    $self->clear_attr(@clear);
+
+    $self;
+}
+
+sub clear_attr {
+    my ( $self, @attrs ) = @_;
+
+    my $body = $self->body;
+
+    $body->removeAttribute($_) for @attrs;
+
+    $self;
+}
+
+sub attr {
+    my ( $self, $name, @args ) = @_;
+
+    if ( @args ) {
+        $self->set_attr($name, @args);
+    }
+
+    $self->body->getAttribute($name);
 }
 
 sub remove {

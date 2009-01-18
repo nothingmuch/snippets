@@ -110,6 +110,15 @@ $span->html(q{<ul><li id="item" class="item"/></ul>});
 
 is( $span->render, q{<span class="moo"><ul><li id="item" class="item"/></ul></span>}, "html on root");
 
-$span->find("#item")->bind([ qw(foo bar gorch) ]);
+$span->find("#item")->bind(qw(foo bar gorch));
 
 is( $span->render, q{<span class="moo"><ul><li class="item">foo</li><li class="item">bar</li><li class="item">gorch</li></ul></span>}, "bind");
+
+$span->html(q{<select name="foo"><option/></select>});
+
+$span->find("select option")->bind(
+    { value => "1", content => "Foo" },
+    { value => "2", content => "Bar" },
+);
+
+is( $span->render, q{<span class="moo"><select name="foo"><option value="1">Foo</option><option value="2">Bar</option></select></span>}, "bind hash" );
